@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-ticker
+  labels:
+    app: stock-ticker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: stock-ticker
+  template:
+    metadata:
+      labels:
+        app: stock-ticker
+    spec:
+      containers:
+      - name: server
+        image: quay.io/matthew_staebler/stock-ticker:latest
+        ports:
+        - name: api
+          containerPort: 80
+        env:
+        - name: PORT
+          value: "80"
+        - name: SYMBOL
+          valueFrom:
+            configMapKeyRef:
+              name: server-config
+              key: SYMBOL
+              optional: false
+        - name: NDAYS
+          valueFrom:
+            configMapKeyRef:
+              name: server-config
+              key: NDAYS
+              optional: false
+        - name: APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: apikey
+              key: APIKEY
+              optional: false
