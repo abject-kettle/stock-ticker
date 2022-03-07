@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: stock-ticker
+
+configMapGenerator:
+- name: server-config
+  envs:
+  - server-config.properties
+
+secretGenerator:
+- name: apikey
+  envs:
+  - apikey.properties
+
+images:
+- name: stock-ticker
+  newName: quay.io/matthew_staebler/stock-ticker
+  newTag: latest
+
+replicas:
+- name: stock-ticker
+  count: 3
+
+patches:
+- target:
+    group: networking.k8s.io
+    kind: Ingress
+    name: stock-ticker
+  patch: |-
+    - op: replace
+      path: /spec/rules/0/host
+      value: stock-ticker.test
+    - op: replace
+      path: /spec/rules/0/http/paths/0/path
+      value: /
+
+resources:
+- deployment.yaml
+- service.yaml
+- ingress.yaml

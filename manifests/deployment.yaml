@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: quay.io/matthew_staebler/stock-ticker:latest
+        image: stock-ticker:latest
         ports:
         - name: api
           containerPort: 80
