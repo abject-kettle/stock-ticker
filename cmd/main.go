@@ -31,6 +31,9 @@ func main() {
 	if apiKey == "" {
 		log.Fatal("APIKEY environment variable is required")
 	}
+	if err := serve.InitializeRateLimiters(); err != nil {
+		log.Fatal(err)
+	}
 	priceFetcher := stock.BuildFetcher(symbol, numberOfDays, apiKey)
 	priceHandler := serve.BuildHandler(priceFetcher)
 	http.Handle("/", priceHandler)

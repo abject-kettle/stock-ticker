@@ -24,6 +24,10 @@ func (h *handler) ServeHTTP(response http.ResponseWriter, request *http.Request)
 		response.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+	if !enforceRateLimiting(request) {
+		response.WriteHeader(http.StatusTooManyRequests)
+		return
+	}
 	prices, err := h.fetcher.Get()
 	if err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
