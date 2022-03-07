@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"stock-ticker/pkg/serve"
 	"stock-ticker/pkg/stock"
@@ -35,7 +36,8 @@ func main() {
 		log.Fatal(err)
 	}
 	priceFetcher := stock.BuildFetcher(symbol, numberOfDays, apiKey)
-	priceHandler := serve.BuildHandler(priceFetcher)
+	cachingPriceFetcher := stock.AddCaching(priceFetcher, 10*time.Minute)
+	priceHandler := serve.BuildHandler(cachingPriceFetcher)
 	http.Handle("/", priceHandler)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
