@@ -12,7 +12,7 @@ type Fetcher interface {
 	Get() ([]Price, error)
 }
 
-func BuildFetcher(symbol string, numberOfDays int, apiKey string) Fetcher {
+func SourceURL(symbol string, apiKey string) string {
 	sourceURL := url.URL{}
 	sourceURL.Scheme = "https"
 	sourceURL.Host = "www.alphavantage.co"
@@ -24,8 +24,12 @@ func BuildFetcher(symbol string, numberOfDays int, apiKey string) Fetcher {
 	query.Set("outputsize", "compact")
 	query.Set("datatype", "csv")
 	sourceURL.RawQuery = query.Encode()
+	return sourceURL.String()
+}
+
+func BuildFetcher(sourceURL string, numberOfDays int) Fetcher {
 	return &fetcher{
-		sourceURL:    sourceURL.String(),
+		sourceURL:    sourceURL,
 		numberOfDays: numberOfDays,
 	}
 }
@@ -39,6 +43,9 @@ func (f *fetcher) Get() ([]Price, error) {
 	resp, err := http.Get(f.sourceURL)
 	if err != nil {
 		return nil, fmt.Errorf("could not get prices: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("could not get prices due to %s", http.StatusText(resp.StatusCode))
 	}
 	prices := make([]Price, 0, f.numberOfDays)
 	scanner := bufio.NewScanner(resp.Body)

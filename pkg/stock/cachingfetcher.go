@@ -17,7 +17,7 @@ type cachingFetcher struct {
 }
 
 func (f *cachingFetcher) Get() ([]Price, error) {
-	if len(f.prices) > 0 || time.Until(f.expiration) > 0 {
+	if len(f.prices) > 0 && time.Until(f.expiration) > 0 {
 		return f.prices, nil
 	}
 	prices, err := f.fetcher.Get()

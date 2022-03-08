@@ -36,7 +36,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	priceFetcher := stock.BuildFetcher(symbol, numberOfDays, apiKey)
+	priceFetcher := stock.BuildFetcher(stock.SourceURL(symbol, apiKey), numberOfDays)
 	cachingPriceFetcher := stock.AddCaching(priceFetcher, 10*time.Minute)
 	priceHandler := serve.BuildHandler(cachingPriceFetcher, rateLimiter)
 	http.Handle("/", priceHandler)
