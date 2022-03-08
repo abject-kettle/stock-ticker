@@ -9,14 +9,16 @@ import (
 	"stock-ticker/pkg/stock"
 )
 
-func BuildHandler(fetcher stock.Fetcher) http.Handler {
+func BuildHandler(fetcher stock.Fetcher, rateLimiter RateLimiter) http.Handler {
 	return &handler{
-		fetcher: fetcher,
+		fetcher:     fetcher,
+		rateLimiter: rateLimiter,
 	}
 }
 
 type handler struct {
-	fetcher stock.Fetcher
+	fetcher     stock.Fetcher
+	rateLimiter RateLimiter
 }
 
 func (h *handler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
@@ -24,7 +26,7 @@ func (h *handler) ServeHTTP(response http.ResponseWriter, request *http.Request)
 		response.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	if !enforceRateLimiting(request) {
+	if !h.rateLimiter.EnforceRateLimiting(request) {
 		response.WriteHeader(http.StatusTooManyRequests)
 		return
 	}
@@ -32,6 +34,7 @@ func (h *handler) ServeHTTP(response http.ResponseWriter, request *http.Request)
 	if err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
 		response.Write([]byte(fmt.Sprintf("could not fetch prices: %v", err)))
+		return
 	}
 	priceResponse := PricesResponse{
 		Average:    averagePrice(prices),
@@ -41,6 +44,7 @@ func (h *handler) ServeHTTP(response http.ResponseWriter, request *http.Request)
 	if err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
 		response.Write([]byte(fmt.Sprintf("could not marshal price response: %v", err)))
+		return
 	}
 	response.WriteHeader(http.StatusOK)
 	response.Write(priceResponseAsJSON)

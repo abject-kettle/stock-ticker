@@ -32,12 +32,13 @@ func main() {
 	if apiKey == "" {
 		log.Fatal("APIKEY environment variable is required")
 	}
-	if err := serve.InitializeRateLimiters(); err != nil {
+	rateLimiter, err := serve.BuildRateLimiter(10, 10000)
+	if err != nil {
 		log.Fatal(err)
 	}
 	priceFetcher := stock.BuildFetcher(symbol, numberOfDays, apiKey)
 	cachingPriceFetcher := stock.AddCaching(priceFetcher, 10*time.Minute)
-	priceHandler := serve.BuildHandler(cachingPriceFetcher)
+	priceHandler := serve.BuildHandler(cachingPriceFetcher, rateLimiter)
 	http.Handle("/", priceHandler)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

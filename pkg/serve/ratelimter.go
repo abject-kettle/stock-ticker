@@ -8,27 +8,35 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 )
 
-var (
-	overallRateLimiter    flowcontrol.PassiveRateLimiter
-	userRateLimitersCache *lru.Cache
-)
-
-func InitializeRateLimiters() error {
-	overallRateLimiter = flowcontrol.NewTokenBucketPassiveRateLimiter(10000, 20000)
-	var err error
-	userRateLimitersCache, err = lru.New(1000)
-	if err != nil {
-		return fmt.Errorf("failed to create cache for user rate limiters: %w", err)
-	}
-	return nil
+type RateLimiter interface {
+	EnforceRateLimiting(request *http.Request) bool
 }
 
-func enforceRateLimiting(request *http.Request) bool {
-	overallAccepted := overallRateLimiter.TryAccept()
-	userRateLimiter, ok := userRateLimitersCache.Get(request.RemoteAddr)
+func BuildRateLimiter(userQPS int, globalQPS int) (RateLimiter, error) {
+	overallRateLimiter := flowcontrol.NewTokenBucketPassiveRateLimiter(float32(globalQPS), 2*globalQPS)
+	userRateLimitersCache, err := lru.New(1000)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cache for user rate limiters: %w", err)
+	}
+	return &rateLimiter{
+		overallRateLimiter:    overallRateLimiter,
+		userRateLimitersCache: userRateLimitersCache,
+		userQPS:               userQPS,
+	}, nil
+}
+
+type rateLimiter struct {
+	overallRateLimiter    flowcontrol.PassiveRateLimiter
+	userRateLimitersCache *lru.Cache
+	userQPS               int
+}
+
+func (l *rateLimiter) EnforceRateLimiting(request *http.Request) bool {
+	overallAccepted := l.overallRateLimiter.TryAccept()
+	userRateLimiter, ok := l.userRateLimitersCache.Get(request.RemoteAddr)
 	if !ok {
-		userRateLimiter = flowcontrol.NewTokenBucketPassiveRateLimiter(10, 20)
-		userRateLimitersCache.Add(request.RemoteAddr, userRateLimiter)
+		userRateLimiter = flowcontrol.NewTokenBucketPassiveRateLimiter(float32(l.userQPS), 2*l.userQPS)
+		l.userRateLimitersCache.Add(request.RemoteAddr, userRateLimiter)
 	}
 	userAccepted := userRateLimiter.(flowcontrol.PassiveRateLimiter).TryAccept()
 	return overallAccepted && userAccepted
