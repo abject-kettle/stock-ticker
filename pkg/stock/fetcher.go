@@ -8,10 +8,13 @@ import (
 	"strings"
 )
 
+// Fetcher is used to fetch prices for a stock.
 type Fetcher interface {
+	// Get returns the historical prices for a stock.
 	Get() ([]Price, error)
 }
 
+// SourceURL is the URL to query for the historical prices of a stock.
 func SourceURL(symbol string, apiKey string) string {
 	sourceURL := url.URL{}
 	sourceURL.Scheme = "https"
@@ -27,6 +30,7 @@ func SourceURL(symbol string, apiKey string) string {
 	return sourceURL.String()
 }
 
+// BuildFetcher builds a fetcher for fetching prices for the specified number of days from the specified URL.
 func BuildFetcher(sourceURL string, numberOfDays int) Fetcher {
 	return &fetcher{
 		sourceURL:    sourceURL,
@@ -39,6 +43,7 @@ type fetcher struct {
 	numberOfDays int
 }
 
+// Get implements Fetcher.Get.
 func (f *fetcher) Get() ([]Price, error) {
 	resp, err := http.Get(f.sourceURL)
 	if err != nil {

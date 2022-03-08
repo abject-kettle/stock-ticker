@@ -2,6 +2,7 @@ package stock
 
 import "time"
 
+// AddCaching wraps caching around the specified fetcher.
 func AddCaching(fetcher Fetcher, expiry time.Duration) Fetcher {
 	return &cachingFetcher{
 		fetcher: fetcher,
@@ -16,6 +17,7 @@ type cachingFetcher struct {
 	expiration time.Time
 }
 
+// Get implements Fetcher.Get.
 func (f *cachingFetcher) Get() ([]Price, error) {
 	if len(f.prices) > 0 && time.Until(f.expiration) > 0 {
 		return f.prices, nil
